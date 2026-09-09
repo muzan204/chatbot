@@ -114,9 +114,18 @@ export async function connect(config, repo, status) {
       }),
     );
     sock.ev.on("messages.upsert", ({ messages, type }) => {
-      if (type !== "notify") return;
-      for (const m of messages)
+      if (!['notify', 'append'].includes(type)) return;
+      const now = Math.floor(Date.now() / 1000);
+      for (const m of messages) {
+        const ts = Number(m.messageTimestamp || 0);
+        if (type === 'append' && ts && Math.abs(now - ts) > 120) continue;
+        log("INFO", "message.received", {
+          type,
+          fromMe: Boolean(m.key?.fromMe),
+          chatType: m.key?.remoteJid?.split('@')[1] || 'unknown',
+        });
         enqueue(() => handleMessage(sock, m, repo, config));
+      }
     });
     sock.ev.on("group-participants.update", (event) =>
       enqueue(() => handleParticipants(sock, event, repo)),
