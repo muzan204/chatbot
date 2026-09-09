@@ -26,6 +26,7 @@ export const config = {
   enabled: process.env.WHATSAPP_ENABLED !== "false",
   authMode: process.env.AUTH_MODE || "qr",
   phone: process.env.PAIRING_PHONE || "",
+  panelSecret: process.env.PANEL_SECRET || "",
   maxReconnect: number("MAX_RECONNECT_ATTEMPTS", 8),
   cooldown: number("COMMAND_COOLDOWN_MS", 3000),
   xpCooldown: number("XP_COOLDOWN_MS", 60000),
