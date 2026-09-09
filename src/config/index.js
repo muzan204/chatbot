@@ -8,15 +8,19 @@ const number = (name, fallback, min = 1) => {
   return n;
 };
 
-const isRender = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL);
+const isRender = Boolean(
+  process.env.RENDER ||
+  process.env.RENDER_SERVICE_ID ||
+  process.env.RENDER_EXTERNAL_URL
+);
 
 export const config = {
   name: process.env.BOT_NAME || "OS NOTURNOS",
   prefix: process.env.PREFIX || "!",
   port: number("PORT", 3000),
-  host: process.env.HOST || (isRender ? "0.0.0.0" : "127.0.0.1"),
+  host: isRender ? "0.0.0.0" : (process.env.HOST || "127.0.0.1"),
   siteDir: path.resolve(process.env.SITE_DIR || "public"),
-  openBrowser: process.env.OPEN_BROWSER !== "false" && !isRender,
+  openBrowser: !isRender && process.env.OPEN_BROWSER !== "false",
   authDir: path.resolve(process.env.AUTH_DIR || "auth"),
   dataFile: path.resolve(process.env.DATA_FILE || "data/database.json"),
   enabled: process.env.WHATSAPP_ENABLED !== "false",
