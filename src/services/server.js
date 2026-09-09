@@ -1,9 +1,9 @@
 import express from "express";
 import { timingSafeEqual } from "node:crypto";
 
-function isLoopback(req) {
-  const address = req.socket.remoteAddress;
-  return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
+function isLocalRequest(req) {
+  const host = (req.get('host') || '').toLowerCase();
+  return /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(host);
 }
 
 function safeEqual(a, b) {
@@ -26,7 +26,7 @@ export function createApp(config, status) {
   app.get('/api/auth', (req, res) => {
     res.set('Cache-Control', 'no-store, private');
 
-    if (!isLoopback(req)) {
+    if (!isLocalRequest(req)) {
       if (!config.panelSecret) {
         return res.status(503).json({ error: 'Painel remoto não configurado.' });
       }
