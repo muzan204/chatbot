@@ -11,6 +11,7 @@ import { log } from "../utils/logger.js";
 export const permanentDisconnect = (code) =>
   [401, 403, 440, 500, 411].includes(code);
 export async function connect(config, repo, status) {
+  log("INFO", config.authMode === "pairing" ? "auth.mode.pairing" : "auth.mode.qr");
   const { state, saveCreds } = await useMultiFileAuthState(config.authDir);
   let socket,
     timer,
