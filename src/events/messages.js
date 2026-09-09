@@ -21,16 +21,30 @@ export const participantMatches = (p, ids) =>
 export async function handleMessage(sock, message, repo, config) {
   const started = Date.now(),
     chat = message.key.remoteJid;
-  if (
-    !chat ||
-    !message.message ||
-    chat === "status@broadcast" ||
-    (!chat.endsWith("@g.us") &&
-      !chat.endsWith("@s.whatsapp.net") &&
-      !chat.endsWith("@lid"))
-  )
+  if (!chat) {
+    log("INFO", "message.ignored.no_chat");
     return;
-  if (!seen.take(chat + ":" + message.key.id, 3600000)) return;
+  }
+  if (!message.message) {
+    log("INFO", "message.ignored.no_content");
+    return;
+  }
+  if (chat === "status@broadcast") {
+    log("INFO", "message.ignored.status");
+    return;
+  }
+  if (
+    !chat.endsWith("@g.us") &&
+    !chat.endsWith("@s.whatsapp.net") &&
+    !chat.endsWith("@lid")
+  ) {
+    log("INFO", "message.ignored.unsupported_chat");
+    return;
+  }
+  if (!seen.take(chat + ":" + message.key.id, 3600000)) {
+    log("INFO", "message.ignored.duplicate");
+    return;
+  }
   const content = normalizeMessageContent(message.message) || {};
   const raw =
     content.conversation ||
@@ -52,9 +66,15 @@ export async function handleMessage(sock, message, repo, config) {
     const prefix = group?.prefix || config.prefix;
     const isCommand = text.startsWith(prefix);
 
-    // Mensagens normais enviadas pela própria conta são ignoradas para evitar loops,
-    // mas comandos como !menu podem ser testados pela conta conectada.
-    if (message.key.fromMe && !isCommand) return;
+    if (!text) {
+      log("INFO", "message.ignored.empty_text");
+      return;
+    }
+
+    if (message.key.fromMe && !isCommand) {
+      log("INFO", "message.ignored.from_me");
+      return;
+    }
 
     const metadata = isGroup ? await sock.groupMetadata(chat) : null;
     const actor = metadata?.participants.find((p) =>
@@ -80,6 +100,7 @@ export async function handleMessage(sock, message, repo, config) {
     repo.activity(isGroup ? chat : null, sender, config.xpCooldown);
     await repo.save();
     if (!isCommand) {
+      log("INFO", "message.parsed.not_command");
       if (
         /^(oi|olá|ola|bom dia|boa noite)$/i.test(text) &&
         replies.take(chat + ":" + sender, 60000)
@@ -89,7 +110,11 @@ export async function handleMessage(sock, message, repo, config) {
         );
       return;
     }
-    if (!cooldown.take(chat + ":" + sender, config.cooldown)) return;
+    log("INFO", "message.parsed.command");
+    if (!cooldown.take(chat + ":" + sender, config.cooldown)) {
+      log("INFO", "message.ignored.cooldown");
+      return;
+    }
     const [name, ...args] = text.slice(prefix.length).trim().split(/\s+/),
       command = name.toLowerCase(),
       cmd = commands.get(command);
