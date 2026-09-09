@@ -23,7 +23,6 @@ export async function handleMessage(sock, message, repo, config) {
     chat = message.key.remoteJid;
   if (
     !chat ||
-    message.key.fromMe ||
     !message.message ||
     chat === "status@broadcast" ||
     (!chat.endsWith("@g.us") &&
@@ -52,7 +51,11 @@ export async function handleMessage(sock, message, repo, config) {
     const group = isGroup ? repo.group(chat) : null;
     const prefix = group?.prefix || config.prefix;
     const isCommand = text.startsWith(prefix);
-    // Permissões consultadas novamente em cada mensagem: sem cache de administradores obsoleto.
+
+    // Mensagens normais enviadas pela própria conta são ignoradas para evitar loops,
+    // mas comandos como !menu podem ser testados pela conta conectada.
+    if (message.key.fromMe && !isCommand) return;
+
     const metadata = isGroup ? await sock.groupMetadata(chat) : null;
     const actor = metadata?.participants.find((p) =>
       participantMatches(p, [sender, message.key.participantAlt]),
