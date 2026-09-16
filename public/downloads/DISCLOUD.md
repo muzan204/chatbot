@@ -11,6 +11,16 @@ Na pasta principal, valide com `npm run check` e `npm test` (ou
 `npm run test:portable` em ambientes restritos). No Windows, gere o pacote
 atualizado com `npm run package:discloud`. Não reutilize um ZIP antigo após editar o código.
 
+O `package.json` dentro do ZIP é adaptado para executar somente `src/discloud.js`
+tanto pelo campo `main` quanto por `npm start`. O arquivo local continua iniciando
+site e bot juntos. O empacotador verifica essas entradas antes de concluir.
+
+Se o painel retornar `503: routes.upload.erro.process`, registre em qual etapa
+isso aconteceu e confira se uma aplicação chegou a ser criada. A mensagem sozinha
+não identifica a causa. Se existir uma aplicação, consulte os logs de instalação;
+se não existir, relate a falha de processamento do upload ao suporte da Discloud.
+Não exclua uma aplicação existente com sessão ou dados para tentar novamente.
+
 1. Entre em https://discloud.com/dashboard com sua conta.
 2. Escolha **+ Upload**, depois **Upload ZIP**, e envie
    `artifacts/os-noturnos-discloud.zip`.
