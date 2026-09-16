@@ -9,6 +9,7 @@ function panel(hostname = 'localhost') {
   const element = selector => {
     if (!nodes.has(selector)) nodes.set(selector, {
       hidden: true, textContent: '', dataset: {}, attrs: {},
+      value: '', addEventListener(name, fn) { this[name] = fn; },
       getAttribute(name) { return this.attrs[name]; },
       removeAttribute(name) { delete this.attrs[name]; },
       set src(value) { this.attrs.src = value; },
@@ -22,6 +23,7 @@ function panel(hostname = 'localhost') {
     document: { hidden: false, querySelector: () => root, querySelectorAll: () => links },
     location: { hostname, reload() {} }, window: { addEventListener: (name, fn) => handlers.set(name, fn) },
     AbortController, AbortSignal, Date,
+    sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     setTimeout: (fn, delay) => { const id = ++sequence; timers.set(id, { fn, delay }); return id; },
     clearTimeout: id => timers.delete(id),
     fetch: async () => { count++; if (fail) throw new Error('offline'); return { ok: true, status: 200, json: async () => response }; },
@@ -39,11 +41,16 @@ test('painel remove indicação online quando o servidor fica indisponível', as
   assert.equal(p.element('[data-connection-state]').dataset.online, 'false');
   assert.equal(p.element('[data-connection-state]').textContent, 'Bot indisponível');
 });
-test('painel externo oferece instalação e não consulta QR', async () => {
+test('painel externo exige chave antes de consultar QR', async () => {
   const p = panel('example.com'); await tick();
-  assert.equal(p.links[0].href, '#instalar');
-  assert.equal(p.root.hidden, true);
+  assert.equal(p.element('[data-panel-login]').hidden, false);
+  assert.equal(p.root.hidden, false);
   assert.equal(p.count, 0);
+  p.element('[data-panel-secret]').value = 'test-secret';
+  p.element('[data-panel-login]').submit({ preventDefault() {} });
+  await tick();
+  assert.equal(p.count, 1);
+  assert.equal(p.element('[data-panel-login]').hidden, true);
 });
 test('QR expira e sair da página cancela consultas e remove código', async () => {
   const p = panel(); await tick();

@@ -23,7 +23,6 @@ export async function handleMessage(sock, message, repo, config) {
     chat = message.key?.remoteJid;
   if (
     !chat ||
-    message.key.fromMe ||
     !message.message ||
     chat === "status@broadcast" ||
     (!chat.endsWith("@g.us") &&
@@ -41,7 +40,7 @@ export async function handleMessage(sock, message, repo, config) {
     "";
   const text = clean(raw),
     isGroup = chat.endsWith("@g.us");
-  let sender = jidNormalizedUser(message.key.participant || chat);
+  let sender = jidNormalizedUser(message.key.fromMe ? (sock.user?.lid || sock.user?.id || '') : (message.key.participant || chat));
   const reply = async (text, mentions = []) =>
     sock.sendMessage(
       chat,
@@ -52,6 +51,10 @@ export async function handleMessage(sock, message, repo, config) {
     const group = isGroup ? repo.group(chat) : null;
     const prefix = group?.prefix || config.prefix;
     const isCommand = text.startsWith(prefix);
+    if (message.key.fromMe && (!isCommand || !sender)) {
+      log("INFO", "message.ignored.from_me");
+      return;
+    }
     // Fresh permissions for commands and potential moderation; ordinary chat skips the request.
     for (const [id, until] of Object.entries(group?.muted || {}))
       if (until <= Date.now()) delete group.muted[id];
@@ -79,6 +82,7 @@ export async function handleMessage(sock, message, repo, config) {
     if (raw.length > config.maxLength) return;
     repo.activity(isGroup ? chat : null, sender, config.xpCooldown);
     if (!isCommand) {
+      log("INFO", "message.parsed.not_command");
       if (
         /^(oi|olá|ola|bom dia|boa noite)$/i.test(text) &&
         replies.take(chat + ":" + sender, 60000)
@@ -88,7 +92,11 @@ export async function handleMessage(sock, message, repo, config) {
         );
       return;
     }
-    if (!cooldown.take(chat + ":" + sender, config.cooldown)) return;
+    log("INFO", "message.parsed.command");
+    if (!cooldown.take(chat + ":" + sender, config.cooldown)) {
+      log("INFO", "message.ignored.cooldown");
+      return;
+    }
     const [name, ...args] = text.slice(prefix.length).trim().split(/\s+/),
       command = name.toLowerCase(),
       cmd = commands.get(command);

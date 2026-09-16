@@ -150,3 +150,33 @@ test('conversa comum evita metadados; comando administrativo consulta permissõe
   assert.equal(metadataCalls, 1);
   assert.match(replies.at(-1).text, /administradores/);
 });
+
+test('upsert append processa apenas mensagens recentes com timestamp válido', async () => {
+  const received = [];
+  const runtime = fakeRuntime({ onMessage: async (_socket, message) => received.push(message.key.id) });
+  const stop = await connect({ maxReconnect: 1 }, {}, {}, runtime);
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    runtime.sockets[0].ev.emit('messages.upsert', { type: 'append', messages: [
+      { key: { remoteJid: 'a', id: 'recent' }, messageTimestamp: now },
+      { key: { remoteJid: 'a', id: 'old' }, messageTimestamp: now - 3600 },
+      { key: { remoteJid: 'a', id: 'missing' } },
+    ] });
+    await waitFor(() => received.length === 1);
+    assert.deepEqual(received, ['recent']);
+  } finally { await stop(); }
+});
+
+test('comando enviado pela própria conta usa identidade do bot e ignora respostas comuns', async t => {
+  const { repo } = await repository(t);
+  const sent = [];
+  const sock = { user: { id: '999@s.whatsapp.net' }, sendMessage: async (_chat, payload) => sent.push(payload) };
+  const cfg = { prefix: '!', maxLength: 4000, cooldown: 1, xpCooldown: 60000 };
+  const msg = (id, text) => ({ key: { id, remoteJid: '111@s.whatsapp.net', fromMe: true }, message: { conversation: text } });
+  await handleMessage(sock, msg('self-ping', '!ping'), repo, cfg);
+  assert.match(sent[0].text, /Pong/);
+  assert.equal(repo.user('999@s.whatsapp.net').messages, 1);
+  assert.equal(repo.state.users['111@s.whatsapp.net'], undefined);
+  await handleMessage(sock, msg('self-response', sent[0].text), repo, cfg);
+  assert.equal(sent.length, 1);
+});

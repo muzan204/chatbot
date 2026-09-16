@@ -12,6 +12,7 @@ import { WorkQueue, SerialQueue } from "../utils/queue.js";
 export const permanentDisconnect = (code) =>
   [401, 403, 440, 500, 411].includes(code);
 export async function connect(config, repo, status, runtime = {}) {
+  log("INFO", config.authMode === "pairing" ? "auth.mode.pairing" : "auth.mode.qr");
   const authState = runtime.authState || useMultiFileAuthState;
   const makeSocket = runtime.makeSocket || makeWASocket;
   const onMessage = runtime.onMessage || handleMessage;
@@ -128,8 +129,12 @@ export async function connect(config, repo, status, runtime = {}) {
       }),
     );
     sock.ev.on("messages.upsert", ({ messages, type }) => {
-      if (type !== "notify" || stopped || retired) return;
+      if (!['notify', 'append'].includes(type) || stopped || retired) return;
+      const now = Math.floor(Date.now() / 1000);
       for (const m of messages) {
+        const timestamp = Number(m.messageTimestamp || 0);
+        if (type === 'append' && (!timestamp || Math.abs(now - timestamp) > 120)) continue;
+        log("INFO", "message.received");
         if (!work.add(m.key?.remoteJid, () => {
           if (!retired && sock === socket) return onMessage(sock, m, repo, config);
         })) log("AVISO", "queue.full");

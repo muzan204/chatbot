@@ -1,5 +1,14 @@
 ﻿# Validação local — 16/09/2026 — versão 1.2.0
 
+## Integração com origin/main
+
+- Merge do tema roxo, painel remoto com PANEL_SECRET, configuração de host e mensagens da própria conta.
+- 27 testes passaram com `npm run test:portable` após a resolução.
+- Novos cenários: token do painel remoto, comandos da própria conta e filtro de mensagens append antigas.
+- Proteções locais de origem e endereço preservadas; formulário remoto usa CSS externo compatível com a política de segurança.
+
+## Validação anterior à integração
+
 - Node.js 22.23.2.
 - 24 testes passaram com `npm test` fora da restrição de subprocessos.
 - Os mesmos 24 testes passaram com `npm run test:portable` no ambiente restrito.

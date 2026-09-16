@@ -79,7 +79,9 @@ Ações administrativas exigem permissões do remetente e, quando necessário, d
 
 ## QR e sessão
 
-No modo local padrão, o QR fica em memória, não aparece nos logs e só é fornecido pelo endpoint local `/api/auth`. Acesso por domínio externo, origem externa e rede externa é recusado. Docker e Discloud usam o console privado para pareamento, como descrito abaixo. `auth/` contém as credenciais da sessão: preserve essa pasta e não a publique. O site hospedado anteriormente não recebe o QR local.
+No modo local padrão, o QR fica em memória e não aparece nos logs. O endpoint `/api/auth` verifica endereço de loopback, domínio e origem para acesso local sem senha. No site hospedado, configure `PANEL_SECRET` com uma chave longa e exclusiva e informe-a no formulário do painel, usando HTTPS. Sem essa configuração, o QR remoto não é disponibilizado. A chave é enviada no cabeçalho Authorization e guardada na sessão da aba após autenticação. Docker e Discloud também podem usar o console privado para pareamento. `auth/` contém as credenciais da sessão: preserve essa pasta e não a publique.
+
+No Render, o servidor escuta em `0.0.0.0` automaticamente e não abre navegador. Comandos enviados pela própria conta conectada também são aceitos; respostas comuns do bot são ignoradas para evitar loops. Mensagens `append` só são processadas quando possuem timestamp recente (até 120 segundos).
 
 ## Resolver problemas
 

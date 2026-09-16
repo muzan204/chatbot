@@ -41,8 +41,14 @@
 </header>
 <main id="conteudo">
 <section class="shell local-panel" id="conectar" hidden="" data-local-panel="true">
+<form class="panel-login" data-panel-login hidden>
+<label for="panel-secret">Chave do painel</label>
+<input id="panel-secret" data-panel-secret type="password" autocomplete="current-password" required>
+<button class="primary" type="submit">Liberar QR Code</button>
+<span data-panel-login-error role="status" aria-live="polite"></span>
+</form>
 <div class="local-intro">
-<p class="eyebrow">SEU WHATSAPP / CONEXÃO LOCAL</p>
+<p class="eyebrow">SEU WHATSAPP / CONEXÃO PROTEGIDA</p>
 <h2>Conecte o OS NOTURNOS.</h2>
 <p>No WhatsApp do celular, abra <strong>Aparelhos conectados → Conectar um aparelho</strong> e escaneie o QR ao lado.</p>
 <div class="connection-badge" data-connection-state="true" role="status" aria-live="polite">Iniciando conexão…</div>

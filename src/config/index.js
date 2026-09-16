@@ -6,18 +6,26 @@ const number = (name, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) => {
     throw new Error(`Configuração inválida: ${name}`);
   return n;
 };
+
+const isRender = Boolean(
+  process.env.RENDER ||
+  process.env.RENDER_SERVICE_ID ||
+  process.env.RENDER_EXTERNAL_URL
+);
+
 export const config = {
   name: process.env.BOT_NAME || "OS NOTURNOS",
   prefix: process.env.PREFIX || "!",
   port: number("PORT", 3000, 1, 65535),
-  host: process.env.HOST || "127.0.0.1",
+  host: isRender ? "0.0.0.0" : (process.env.HOST || "127.0.0.1"),
   siteDir: path.resolve(process.env.SITE_DIR || "public"),
-  openBrowser: process.env.OPEN_BROWSER !== 'false',
+  openBrowser: !isRender && process.env.OPEN_BROWSER !== "false",
   authDir: path.resolve(process.env.AUTH_DIR || "auth"),
   dataFile: path.resolve(process.env.DATA_FILE || "data/database.json"),
   enabled: process.env.WHATSAPP_ENABLED !== "false",
   authMode: process.env.AUTH_MODE || "qr",
   phone: process.env.PAIRING_PHONE || "",
+  panelSecret: process.env.PANEL_SECRET || "",
   maxReconnect: number("MAX_RECONNECT_ATTEMPTS", 8),
   concurrency: number("COMMAND_CONCURRENCY", 4, 1, 16),
   flushMs: number("DATABASE_FLUSH_MS", 2000, 100, 60000),
@@ -32,4 +40,5 @@ export const config = {
 if (!["qr", "pairing"].includes(config.authMode)) throw new Error("AUTH_MODE deve ser qr ou pairing.");
 if (!/^\S{1,5}$/u.test(config.prefix))
   throw new Error("PREFIX deve ter de 1 a 5 caracteres sem espaços.");
+
 new Intl.DateTimeFormat("pt-BR", { timeZone: config.timezone });
