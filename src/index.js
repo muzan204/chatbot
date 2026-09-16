@@ -7,7 +7,7 @@ import { openPanel } from './services/browser.js';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 const status = { connection: config.enabled ? "starting" : "disabled" };
-const repo = await new Repository(config.dataFile).init();
+const repo = await new Repository(config.dataFile, { flushMs: config.flushMs }).init();
 await access(path.join(config.siteDir, 'index.html'));
 const server = createApp(config, status).listen(config.port, config.host);
 await new Promise((resolve, reject) => {
@@ -28,14 +28,19 @@ async function shutdown() {
   if (closing) return;
   closing = true;
   log("INFO", "shutdown");
-  const deadline = setTimeout(() => process.exit(1), 10000);
+  const deadline = setTimeout(() => process.exit(1), 150000);
   deadline.unref();
-  await stop();
-  await repo.save();
-  server.close(() => {
-    clearTimeout(deadline);
-    process.exit(0);
-  });
+  try {
+    // Drain commands while the socket is still usable, then persist the final state.
+    try { await stop(); } finally { await repo.close(); }
+    server.close(() => {
+      clearTimeout(deadline);
+      process.exit(0);
+    });
+  } catch {
+    log("ERRO", "shutdown.failed");
+    process.exit(1);
+  }
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

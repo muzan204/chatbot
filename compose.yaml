@@ -1,0 +1,18 @@
+services:
+  bot:
+    build: .
+    init: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      HOST: 0.0.0.0
+      OPEN_BROWSER: "false"
+      AUTH_CONSOLE: "true"
+    volumes:
+      - whatsapp-auth:/app/auth
+      - whatsapp-data:/app/data
+    stop_grace_period: 160s
+    restart: unless-stopped
+volumes:
+  whatsapp-auth:
+  whatsapp-data:

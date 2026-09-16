@@ -20,5 +20,11 @@ test('QR local: sem cache, bloqueio de origem e domínio externos, expiração',
     assert.equal((await (await fetch(base + '/api/status')).json()).auth, undefined);
     status.auth.expiresAt = 0;
     assert.equal((await (await fetch(base + '/api/auth')).json()).auth, null);
+    assert.equal((await fetch(base + '/ready')).status, 503);
+    status.connection = 'online';
+    assert.equal((await fetch(base + '/ready')).status, 200);
+    status.credentialsError = true;
+    assert.equal((await fetch(base + '/ready')).status, 503);
+    assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });

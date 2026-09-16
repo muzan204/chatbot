@@ -1,6 +1,6 @@
 {
   "name": "os-noturnos-whatsapp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,15 +9,19 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "node --test",
-    "check": "node scripts/check.js"
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.js",
+    "test:portable": "node --test --experimental-test-isolation=none test/*.test.js",
+    "start:discloud": "node src/discloud.js",
+    "sync:public": "node scripts/sync-public.js",
+    "package:discloud": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-discloud.ps1"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "7.0.0-rc14",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
-    "pino": "^9.9.0",
+    "pino": "10.3.1",
     "qrcode": "^1.5.4",
-    "sharp": "^0.34.3"
+    "sharp": "0.35.4"
   }
 }

@@ -133,6 +133,7 @@ test("integração: usuário comum não pode banir; anti-link apaga e ignora adm
       cfg,
     );
     assert.equal(sent.length, count);
+    await repo.close();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

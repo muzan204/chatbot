@@ -20,7 +20,7 @@ export const participantMatches = (p, ids) =>
     );
 export async function handleMessage(sock, message, repo, config) {
   const started = Date.now(),
-    chat = message.key.remoteJid;
+    chat = message.key?.remoteJid;
   if (
     !chat ||
     message.key.fromMe ||
@@ -31,7 +31,7 @@ export async function handleMessage(sock, message, repo, config) {
       !chat.endsWith("@lid"))
   )
     return;
-  if (!seen.take(chat + ":" + message.key.id, 3600000)) return;
+  if (!message.key.id || !seen.take(chat + ":" + message.key.id, 3600000)) return;
   const content = normalizeMessageContent(message.message) || {};
   const raw =
     content.conversation ||
@@ -52,8 +52,11 @@ export async function handleMessage(sock, message, repo, config) {
     const group = isGroup ? repo.group(chat) : null;
     const prefix = group?.prefix || config.prefix;
     const isCommand = text.startsWith(prefix);
-    // Permissões consultadas novamente em cada mensagem: sem cache de administradores obsoleto.
-    const metadata = isGroup ? await sock.groupMetadata(chat) : null;
+    // Fresh permissions for commands and potential moderation; ordinary chat skips the request.
+    for (const [id, until] of Object.entries(group?.muted || {}))
+      if (until <= Date.now()) delete group.muted[id];
+    const moderation = isGroup && ((group.antilink && hasLink(raw)) || Object.keys(group.muted).length > 0);
+    const metadata = isGroup && (isCommand || moderation || !sender.endsWith("@lid")) ? await sock.groupMetadata(chat) : null;
     const actor = metadata?.participants.find((p) =>
       participantMatches(p, [sender, message.key.participantAlt]),
     );
@@ -67,7 +70,7 @@ export async function handleMessage(sock, message, repo, config) {
       isGroup &&
       !isAdmin &&
       botAdmin &&
-      ((group.muted[sender] || 0) > Date.now() ||
+      ([sender, actor?.id, actor?.phoneNumber, actor?.lid].some(id => (group.muted[id] || 0) > Date.now()) ||
         (group.antilink && hasLink(raw)))
     ) {
       await sock.sendMessage(chat, { delete: message.key });
@@ -75,7 +78,6 @@ export async function handleMessage(sock, message, repo, config) {
     }
     if (raw.length > config.maxLength) return;
     repo.activity(isGroup ? chat : null, sender, config.xpCooldown);
-    await repo.save();
     if (!isCommand) {
       if (
         /^(oi|olá|ola|bom dia|boa noite)$/i.test(text) &&

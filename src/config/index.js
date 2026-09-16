@@ -1,15 +1,15 @@
 import "dotenv/config";
 import path from "node:path";
-const number = (name, fallback, min = 1) => {
+const number = (name, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) => {
   const n = Number(process.env[name] || fallback);
-  if (!Number.isSafeInteger(n) || n < min)
+  if (!Number.isSafeInteger(n) || n < min || n > max)
     throw new Error(`Configuração inválida: ${name}`);
   return n;
 };
 export const config = {
   name: process.env.BOT_NAME || "OS NOTURNOS",
   prefix: process.env.PREFIX || "!",
-  port: number("PORT", 3000),
+  port: number("PORT", 3000, 1, 65535),
   host: process.env.HOST || "127.0.0.1",
   siteDir: path.resolve(process.env.SITE_DIR || "public"),
   openBrowser: process.env.OPEN_BROWSER !== 'false',
@@ -19,6 +19,9 @@ export const config = {
   authMode: process.env.AUTH_MODE || "qr",
   phone: process.env.PAIRING_PHONE || "",
   maxReconnect: number("MAX_RECONNECT_ATTEMPTS", 8),
+  concurrency: number("COMMAND_CONCURRENCY", 4, 1, 16),
+  flushMs: number("DATABASE_FLUSH_MS", 2000, 100, 60000),
+  authConsole: process.env.AUTH_CONSOLE === "true",
   cooldown: number("COMMAND_COOLDOWN_MS", 3000),
   xpCooldown: number("XP_COOLDOWN_MS", 60000),
   maxLength: number("MAX_MESSAGE_LENGTH", 4000),
@@ -26,6 +29,7 @@ export const config = {
   maxMedia: number("MAX_MEDIA_BYTES", 10485760),
   maxVideo: number("MAX_VIDEO_SECONDS", 6),
 };
+if (!["qr", "pairing"].includes(config.authMode)) throw new Error("AUTH_MODE deve ser qr ou pairing.");
 if (!/^\S{1,5}$/u.test(config.prefix))
   throw new Error("PREFIX deve ter de 1 a 5 caracteres sem espaços.");
 new Intl.DateTimeFormat("pt-BR", { timeZone: config.timezone });

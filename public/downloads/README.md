@@ -7,7 +7,7 @@ Um único projeto. Um único `npm start`.
 Abra **esta pasta** no VS Code. Na primeira instalação:
 
 ```sh
-npm install
+npm ci
 ```
 
 Depois:
@@ -79,7 +79,7 @@ Ações administrativas exigem permissões do remetente e, quando necessário, d
 
 ## QR e sessão
 
-O QR fica em memória, não aparece nos logs e só é fornecido pelo endpoint local `/api/auth`. Acesso por domínio externo, origem externa e rede externa é recusado. `auth/` contém as credenciais da sessão: preserve essa pasta e não a publique. O site hospedado anteriormente não recebe o QR local.
+No modo local padrão, o QR fica em memória, não aparece nos logs e só é fornecido pelo endpoint local `/api/auth`. Acesso por domínio externo, origem externa e rede externa é recusado. Docker e Discloud usam o console privado para pareamento, como descrito abaixo. `auth/` contém as credenciais da sessão: preserve essa pasta e não a publique. O site hospedado anteriormente não recebe o QR local.
 
 ## Resolver problemas
 
@@ -90,6 +90,54 @@ O QR fica em memória, não aparece nos logs e só é fornecido pelo endpoint lo
 - **Sessão encerrada:** verifique se outra instância está usando a mesma conta antes de refazer o pareamento.
 - **PowerShell bloqueia npm.ps1:** use `npm.cmd start`.
 
-Testes: `npm test`. Em ambientes que bloqueiam subprocessos: `node --test --experimental-test-isolation=none`.
+Testes: `npm test`. Em ambientes que bloqueiam subprocessos: `npm run test:portable`.
+
+## Versão 1.2.0 — operação e manutenção
+
+A raiz é a única pasta de desenvolvimento. O histórico Git foi preservado aqui.
+A antiga pasta `chatbot/` foi arquivada em `artifacts/chatbot-original-20260916.zip`.
+Não edite nem execute o backup; ele serve apenas para recuperação.
+
+- Comandos são ordenados por conversa, com até 4 conversas em paralelo. Ajuste `COMMAND_CONCURRENCY` entre 1 e 16.
+- Há limite de 200 trabalhos no total e 50 por conversa. Quando a fila está cheia, novos trabalhos são descartados com o evento `queue.full` no log.
+- Eventos de conexão e gravação de credenciais usam filas próprias e não são descartados pela fila de comandos.
+- Mensagens comuns com identidade LID não consultam participantes. Comandos e possíveis ações de moderação consultam permissões atuais.
+- Contadores de mensagens e XP são salvos em lotes a cada `DATABASE_FLUSH_MS` (padrão: 2000 ms). Um encerramento abrupto pode perder esse intervalo; alterações administrativas aguardam gravação.
+- `data/database.json.bak` mantém o último estado salvo antes da gravação atual. Na recuperação, o arquivo inválido é preservado como `.corrupt-...`. Mantenha também backups externos privados de `auth/` e `data/`.
+- Execute apenas uma instância por sessão e banco. Não compartilhe os mesmos volumes entre réplicas.
+- O encerramento aguarda trabalhos pendentes por até 150 segundos. Um limite menor imposto pela hospedagem pode interromper esse processo.
+- `/health` informa que o servidor está vivo; `/ready` retorna 200 somente com WhatsApp conectado e sem falha de gravação de credenciais, ou 503 caso contrário.
+
+## Docker
+
+```sh
+docker compose up --build -d
+docker compose logs -f bot
+```
+
+O site fica em http://127.0.0.1:3000. O contêiner escuta em `0.0.0.0`,
+mas a porta publicada fica restrita ao computador local. Os volumes nomeados
+preservam sessão e banco entre reinicializações. Não use `down -v` se quiser preservá-los.
+
+Por segurança, o endpoint de QR continua exigindo conexão de loopback.
+A rede do Docker pode fazer esse endpoint retornar 403: nesse caso, use o QR
+do console privado (`AUTH_CONSOLE=true` no contêiner). Não exponha esses logs.
+No uso local, `AUTH_CONSOLE` permanece desativado por padrão.
+Para APIs opcionais, adicione as variáveis ao ambiente do serviço; o `.env` local
+não é copiado para a imagem e não é injetado automaticamente pelo Compose.
+
+## Validação e pacote de hospedagem
+
+```sh
+npm run check
+npm test
+npm run sync:public
+```
+
+No Windows, `npm run package:discloud` gera `artifacts/os-noturnos-discloud.zip`
+a partir de uma lista explícita de arquivos, sem chaves, banco ou sessão.
+Execute os testes antes de gerar o pacote. Consulte [DISCLOUD.md](DISCLOUD.md).
+O script `sync:public` atualiza a versão do site e as cópias da documentação para download.
+O pacote para Discloud contém apenas o bot; os scripts de desenvolvimento pertencem ao checkout completo.
 
 O bot usa Baileys, uma integração comunitária sem afiliação oficial com o WhatsApp. A conexão real depende do pareamento no celular. APIs e vídeos devem ser testados no ambiente configurado.

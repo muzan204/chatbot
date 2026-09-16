@@ -3,6 +3,11 @@ import { localOnly } from '../utils/local-only.js';
 export function createApp(config, status) {
   const app = express();
   app.disable("x-powered-by");
+  app.use((_req, res, next) => {
+    res.set({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
+      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" });
+    next();
+  });
   if (!config.siteDir) app.get("/", (_req, res) =>
     res
       .type("text/plain")
@@ -25,6 +30,10 @@ export function createApp(config, status) {
       uptime: Math.floor(process.uptime()),
     }),
   );
+  app.get('/ready', (_req, res) => {
+    const ready = status.connection === 'online' && !status.credentialsError;
+    res.status(ready ? 200 : 503).set('Cache-Control', 'no-store').json({ ready });
+  });
   if (config.siteDir) app.use(express.static(config.siteDir, { dotfiles: 'deny', index: 'index.html' }));
   app.use((_req, res) =>
     res.status(404).json({ error: "Rota não encontrada" }),

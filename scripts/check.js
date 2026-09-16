@@ -14,4 +14,6 @@ async function walk(dir) {
 }
 await walk("src");
 await walk("test");
+await walk("public");
+await walk("scripts");
 console.log("Sintaxe validada.");
